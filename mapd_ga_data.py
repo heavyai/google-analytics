@@ -366,6 +366,14 @@ for profile in sorted(profile_ids):
     merge_tables()
 print "Download of analytics data done."
 
+# Gzip the CSV file
+import gzip
+import shutil
+if os.path.isfile(final_csv_gzfile):
+  os.remove(final_csv_gzfile)
+with open(final_csv_file, 'rb') as f_in, gzip.open(final_csv_gzfile, 'wb') as f_out:
+    shutil.copyfileobj(f_in, f_out)
+
 # Connect to MapD
 if skip_mapd_connect == True:
   print "======================================================================="
@@ -376,14 +384,6 @@ connect_to_mapd(db_login, db_password, mapd_host, database)
 
 # No need to drop table as we will be concatenating the records if the table already exists.
 # drop_table_mapd(table_name)
-
-# Gzip the CSV file
-import gzip
-import shutil
-if os.path.isfile(final_csv_gzfile):
-  os.remove(final_csv_gzfile)
-with open(final_csv_file, 'rb') as f_in, gzip.open(final_csv_gzfile, 'wb') as f_out:
-    shutil.copyfileobj(f_in, f_out)
 
 # Load data into MapD table
 load_to_mapd(table_name, final_csv_gzfile, mapd_host, ssh_login)

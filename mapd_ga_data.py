@@ -76,7 +76,7 @@ class SampledDataError(Exception): pass
 #original set - all_dimensions=['ga:userAgeBracket','ga:userGender','ga:country','ga:countryIsoCode','ga:city','ga:continent','ga:subContinent','ga:userType','ga:sessionCount','ga:daysSinceLastSession','ga:sessionDurationBucket','ga:referralPath','ga:browser','ga:operatingSystem','ga:browserSize','ga:screenResolution','ga:screenColors','ga:flashVersion','ga:javaEnabled','ga:networkLocation','ga:mobileDeviceInfo','ga:mobileDeviceModel','ga:mobileDeviceBranding','ga:deviceCategory','ga:language','ga:adGroup','ga:source','ga:dataSource','ga:sourceMedium','ga:adSlot','ga:mobileInputSelector','ga:mobileDeviceMarketingName','ga:searchCategory','ga:searchDestinationPage','ga:interestAffinityCategory','ga:landingPagePath','ga:exitPagePath','ga:browserVersion','ga:eventLabel','ga:eventAction','ga:eventCategory','ga:hour','ga:yearMonth','ga:Month','ga:date','ga:keyword','ga:campaign','ga:adContent']
 
 key_dimensions=['ga:date','ga:hour','ga:minute','ga:longitude','ga:latitude','ga:landingPagePath']
-all_dimensions=['ga:networkLocation', 'ga:country', 'ga:city', 'ga:source', 'ga:sessionDurationBucket', 'ga:sessionCount', 'ga:deviceCategory', 'ga:campaign', 'ga:adContent','ga:keyword']
+all_dimensions=['ga:networkLocation', 'ga:country', 'ga:city', 'ga:medium', 'ga:source', 'ga:sessionDurationBucket', 'ga:sessionCount', 'ga:deviceCategory', 'ga:campaign', 'ga:adContent','ga:keyword']
 n_dims = 7 - len(key_dimensions)
 
 def get_service():

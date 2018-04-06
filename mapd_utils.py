@@ -32,7 +32,7 @@ def drop_table_mapd(table_name):
 # Load CSV to Table
 def load_to_mapd(table_name, csv_file, mapd_host, mapd_user):
   global connection
-  create_table_str = 'CREATE TABLE IF NOT EXISTS %s (ga_date TIMESTAMP, ga_longitude FLOAT, ga_latitude FLOAT, ga_landingPagePath TEXT ENCODING DICT(8), ga_networkLocation TEXT ENCODING DICT(8), ga_pageviews BIGINT, ga_country TEXT ENCODING DICT(8), ga_city TEXT ENCODING DICT(8), ga_source TEXT ENCODING DICT(8), ga_sessionDurationBucket BIGINT, ga_sessionCount BIGINT, ga_deviceCategory TEXT ENCODING DICT(8), ga_campaign TEXT ENCODING DICT(8), ga_adContent TEXT ENCODING DICT(8), ga_keyword TEXT ENCODING DICT(8))' % (table_name)
+  create_table_str = 'CREATE TABLE IF NOT EXISTS %s (ga_date TIMESTAMP, ga_longitude FLOAT, ga_latitude FLOAT, ga_landingPagePath TEXT ENCODING DICT(8), ga_networkLocation TEXT ENCODING DICT(8), ga_pageviews BIGINT, ga_country TEXT ENCODING DICT(8), ga_city TEXT ENCODING DICT(8), ga_medium TEXT ENCODING DICT(8), ga_source TEXT ENCODING DICT(8), ga_sessionDurationBucket BIGINT, ga_sessionCount BIGINT, ga_deviceCategory TEXT ENCODING DICT(8), ga_campaign TEXT ENCODING DICT(8), ga_adContent TEXT ENCODING DICT(8), ga_keyword TEXT ENCODING DICT(8))' % (table_name)
   print create_table_str
   connection.execute(create_table_str)
   server_csv_file = '/tmp/%s' % (os.path.basename(csv_file))

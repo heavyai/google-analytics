@@ -163,9 +163,8 @@ def merge_tables():
     df = df[df.ga_longitude != 0]
     df = df[df.ga_latitude != 0]
     #df['ga_pageviews'] = df['ga_pageviews'].fillna(0)
+    df = df.fillna("None")
     df.to_csv('./data/combo.csv', index=False)
-    os.system("sed -i '1,$s/,$/,None/' ./data/combo.csv")
-    os.system("sed -i '1,$s/,,/,None,/g' ./data/combo.csv")
     del df1
     del df2
     del combo
@@ -229,6 +228,7 @@ def main(argv):
             if results.get('containsSampledData'):
               raise SampledDataError #VS
             save_results(results, pag_index, start_date, end_date, dims)
+          files[dims].close()
 
   except TypeError, error:
     # Handle errors in constructing a query.

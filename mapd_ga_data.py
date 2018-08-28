@@ -382,11 +382,9 @@ if skip_mapd_connect == True:
   sys.exit(0)
 connect_to_mapd(db_login, db_password, mapd_host, database)
 
-# No need to drop table as we will be concatenating the records if the table already exists.
-# drop_table_mapd(table_name)
-
 # Load data into MapD table
-load_to_mapd(table_name, final_csv_gzfile, mapd_host, ssh_login)
+load_table_mapd(table_name, final_csv_gzfile, mapd_host, ssh_login)
+disconnect_mapd()
 print "======================================================================="
 print 'Goto MapD Immerse UI @ http://%s:9092/' % (mapd_host)
 print "======================================================================="

@@ -76,6 +76,7 @@ class SampledDataError(Exception): pass
 #original set - all_dimensions=['ga:userAgeBracket','ga:userGender','ga:country','ga:countryIsoCode','ga:city','ga:continent','ga:subContinent','ga:userType','ga:sessionCount','ga:daysSinceLastSession','ga:sessionDurationBucket','ga:referralPath','ga:browser','ga:operatingSystem','ga:browserSize','ga:screenResolution','ga:screenColors','ga:flashVersion','ga:javaEnabled','ga:networkLocation','ga:mobileDeviceInfo','ga:mobileDeviceModel','ga:mobileDeviceBranding','ga:deviceCategory','ga:language','ga:adGroup','ga:source','ga:dataSource','ga:sourceMedium','ga:adSlot','ga:mobileInputSelector','ga:mobileDeviceMarketingName','ga:searchCategory','ga:searchDestinationPage','ga:interestAffinityCategory','ga:landingPagePath','ga:exitPagePath','ga:browserVersion','ga:eventLabel','ga:eventAction','ga:eventCategory','ga:hour','ga:yearMonth','ga:Month','ga:date','ga:keyword','ga:campaign','ga:adContent']
 
 key_dimensions=['ga:date','ga:hour','ga:minute','ga:longitude','ga:latitude','ga:landingPagePath']
+#all_dimensions=['ga:networkLocation', 'ga:country', 'ga:city', 'ga:medium', 'ga:source', 'ga:sessionDurationBucket', 'ga:sessionCount', 'ga:deviceCategory', 'ga:campaign', 'ga:adContent','ga:keyword']
 all_dimensions=['ga:networkLocation', 'ga:country', 'ga:city', 'ga:medium', 'ga:source', 'ga:sessionDurationBucket', 'ga:sessionCount', 'ga:deviceCategory', 'ga:campaign', 'ga:adContent','ga:keyword']
 n_dims = 7 - len(key_dimensions)
 
@@ -141,10 +142,10 @@ def traverse_hierarchy(argv):
 
 def merge_tables():
   global final_csv_file
-  for i in xrange(0,len(csv_list),1):
-    print csv_list[i]
+  for i in range(0,len(csv_list),1):
+    print (csv_list[i])
     if i == (len(csv_list) - 1):
-      print "exiting for loop ..."
+      print ("exiting for loop ...")
       break
   
     if i == 0:
@@ -179,19 +180,19 @@ def merge_tables():
   df = df.drop('ga_hour', axis=1)
   df = df.drop('ga_minute', axis=1)
   df.to_csv(final_csv_file, index=False)  
-  print df.head(3)
-  print df.isnull().sum()
+  print (df.head(3))
+  print (df.isnull().sum())
   
 def main(argv):
   global csv_list
   i = 0
-  for dim_i in xrange(0,len(all_dimensions), n_dims):
+  for dim_i in range(0,len(all_dimensions), n_dims):
     dimss = key_dimensions + all_dimensions[dim_i:dim_i+n_dims]
     dims = ",".join(dimss)
     #path = os.path.abspath('.') + '/data/'
     path = './data/'
     if not os.path.exists(path):
-      os.mkdir(path, 0755)
+      os.mkdir(path, 0o755 )
     file_suffix = '%s' % (all_dimensions[dim_i:dim_i+n_dims])
     file_suffix = '%s' % (file_suffix.strip('\[\'\]'))
     file_suffix = '%s' % (file_suffix[3:])
@@ -212,17 +213,17 @@ def main(argv):
   try:
     profile_id = profile_ids[profile]
     if not profile_id:
-      print 'Could not find a valid profile for this user.'
+      print ('Could not find a valid profile for this user.')
     else:
       for start_date, end_date in date_ranges:
-        for dim_i in xrange(0,len(all_dimensions), n_dims):
+        for dim_i in range(0,len(all_dimensions), n_dims):
           dimss = key_dimensions + all_dimensions[dim_i:dim_i+n_dims]
           dims = ",".join(dimss)
-          print dims
+          print (dims)
           limit = ga_query(service, profile_id, 0,
                                    start_date, end_date, dims).get('totalResults')
-          print "Found " + str(limit) + " records" #VS
-          for pag_index in xrange(0, limit, 10000):
+          print ("Found " + str(limit) + " records") #VS
+          for pag_index in range(0, limit, 10000):
             results = ga_query(service, profile_id, pag_index,
                                        start_date, end_date, dims)
             if results.get('containsSampledData'):
@@ -230,23 +231,23 @@ def main(argv):
             save_results(results, pag_index, start_date, end_date, dims)
           files[dims].close()
 
-  except TypeError, error:
+  except TypeError as error:
     # Handle errors in constructing a query.
     print ('There was an error in constructing your query : %s' % error)
 
-  except HttpError, error:
+  except HttpError as error:
     # Handle API errors.
     print ('Arg, there was an API error : %s : %s' %
            (error.resp.status, error._get_reason()))
 
-  except AccessTokenRefreshError:
-    # Handle Auth errors.
-    print ('The credentials have been revoked or expired, please re-run '
-           'the application to re-authorize')
+  #except AccessTokenRefreshError:
+  #  # Handle Auth errors.
+  #  print ('The credentials have been revoked or expired, please re-run '
+  #         'the application to re-authorize')
 
-  except SampledDataError:
-    # force an error if ever a query returns data that is sampled!
-    print ('Error: Query contains sampled data!')
+  #except SampledDataError:
+  #  # force an error if ever a query returns data that is sampled!
+  #  print ('Error: Query contains sampled data!')
 
 
 def ga_query(service, profile_id, pag_index, start_date, end_date, dims):
@@ -267,7 +268,7 @@ def save_results(results, pag_index, start_date, end_date, dims):
   # New write header
   if pag_index == 0:
     if (start_date, end_date) == date_ranges[0]:
-      print 'Profile Name: %s' % results.get('profileInfo').get('profileName')
+      print ('Profile Name: %s' % results.get('profileInfo').get('profileName'))
       columnHeaders = results.get('columnHeaders')
       #cleanHeaders = [str(h['name']) for h in columnHeaders]
       #writers[dims].writerow(cleanHeaders)
@@ -279,7 +280,7 @@ def save_results(results, pag_index, start_date, end_date, dims):
       cleanHeaders_str = cleanHeaders_str.replace(',', '')
       cleanHeaders = cleanHeaders_str.split()
       writers[dims].writerow(cleanHeaders)
-    print 'Now pulling data from %s to %s.' %(start_date, end_date)
+    print ('Now pulling data from %s to %s.' %(start_date, end_date))
 
   # Print data table.
   if results.get('rows', []):
@@ -292,10 +293,10 @@ def save_results(results, pag_index, start_date, end_date, dims):
       writers[dims].writerow(row)
 
   else:
-    print 'No Rows Found'
+    print ('No Rows Found')
 
   limit = results.get('totalResults')
-  print pag_index, 'of about', int(round(limit, -4)), 'rows.'
+  print (pag_index, 'of about', int(round(limit, -4)), 'rows.')
   return None
 
 profile_ids = {}
@@ -323,8 +324,8 @@ for profile in sorted(profile_ids):
   print ('%4s %20s %5s %20s' % (i, profile_ids[profile], " ", profile))
   i +=1
 
-print 'Enter the item# of the view you would like to ingest into MapD: ',
-item = int(raw_input())
+print ('Enter the item# of the view you would like to ingest into MapD: ')
+item = int(input())
 if item == '' or item <= 0 or item >= len(selection_list):
   print('Invalid selection - %s' % item)
   sys.exit(0)
@@ -332,8 +333,8 @@ print('Item # %s selected' % item)
 
 print('\nEnter the begin date and end date in the following format: YYYY-MM-DD YYYY-MM-DD')
 print('Or hit enter to proceed with the default which is last 30 days data')
-print 'Date Range: ',
-begin_end_date = raw_input()
+print ('Date Range: ')
+begin_end_date = input()
 if begin_end_date == '':
   print('Extract data from today to 30 days ago')
 else:
@@ -343,8 +344,8 @@ else:
 
 print("\nEnter the MapD server information if you want to upload data,\n otherwise simply hit enter to use the manual procedure to upload the data")
 print("  Information needed - <Hostname or IP Address> <db login> <db password> <database name> <SSH login>")
-print 'MapD Server Info: ',
-server_info = raw_input()
+print ('MapD Server Info: ')
+server_info = input()
 if server_info == '':
   print('Use MapD Immerse import user interface to load the output CSV file')
   skip_mapd_connect = True
@@ -352,7 +353,7 @@ else:
   (mapd_host, db_login, db_password, database, ssh_login) = [t(s) for t,s in zip((str, str, str, str, str), server_info.split())]
   print('The data from the selected view will be automatically uploaded to the %s database in the %s server' % (database, mapd_host))
   skip_mapd_connect = False
-print ""
+print ("")
 
 for profile in sorted(profile_ids):
   if (selection_list[item] == profile_ids[profile]):
@@ -364,7 +365,7 @@ for profile in sorted(profile_ids):
     main(sys.argv)
     # Merge the tables for the different dimensions.
     merge_tables()
-print "Download of analytics data done."
+print ("Download of analytics data done.")
 
 # Gzip the CSV file
 import gzip
@@ -376,16 +377,16 @@ with open(final_csv_file, 'rb') as f_in, gzip.open(final_csv_gzfile, 'wb') as f_
 
 # Connect to MapD
 if skip_mapd_connect == True:
-  print "======================================================================="
-  print 'Goto MapD Immerse UI and import the CSV file %s' % (final_csv_gzfile)
-  print "======================================================================="
+  print ("=======================================================================")
+  print ('Goto MapD Immerse UI and import the CSV file %s' % (final_csv_gzfile))
+  print ("=======================================================================")
   sys.exit(0)
 connect_to_mapd(db_login, db_password, mapd_host, database)
 
 # Load data into MapD table
 load_table_mapd(table_name, final_csv_gzfile, mapd_host, ssh_login)
 disconnect_mapd()
-print "======================================================================="
-print 'Goto MapD Immerse UI @ http://%s:9092/' % (mapd_host)
-print "======================================================================="
+print ("=======================================================================")
+print ('Goto MapD Immerse UI @ http://%s:9092/' % (mapd_host))
+print ("=======================================================================")
 

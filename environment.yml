@@ -1,0 +1,12 @@
+name: holodeck
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - python=3.7
+  - google-api-python-client>=1.7.11
+  - matplotlib
+  - oauth2client
+  - pandas
+  - pymapd>=0.17.0
+  - python-gflags

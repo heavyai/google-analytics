@@ -50,10 +50,6 @@ understands by running:
 
 __author__ = 'veda.shankar@gmail.com (Veda Shankar)'
 
-# MAPD Modules
-
-
-
 
 import argparse
 import sys
@@ -62,6 +58,7 @@ import string
 import os
 import re
 import gzip
+import shutil
 import pandas as pd
 import numpy as np
 from mapd_utils import *
@@ -89,7 +86,7 @@ all_dimensions = ['ga:networkLocation', 'ga:country', 'ga:city', 'ga:medium', 'g
 n_dims = 7 - len(key_dimensions)
 
 
-def get_service():
+def get_service(key_file_location):
     """Get a service that communicates to a Google API.
 
     Args:
@@ -102,7 +99,6 @@ def get_service():
       A service that is connected to the specified API.
     """
     scope = ['https://www.googleapis.com/auth/analytics.readonly']
-    key_file_location = './client_secrets.json'
     api_name = 'analytics'
     api_version = 'v3'
     credentials = ServiceAccountCredentials.from_json_keyfile_name(
@@ -112,7 +108,6 @@ def get_service():
     service = build(api_name, api_version, credentials=credentials)
 
     return service
-
 
 # Traverse the GA management hierarchy and construct the mapping of website
 # profile views and IDs.
@@ -136,7 +131,7 @@ def traverse_hierarchy(service):
                 profile_ids[profileName] = profileID
     return profile_ids
 
-def merge_tables(final_csv_file):
+def merge_tables(final_csv_file, csv_list):
     for i in range(0, len(csv_list), 1):
         print(csv_list[i])
         if i == (len(csv_list) - 1):
@@ -182,6 +177,7 @@ def merge_tables(final_csv_file):
 
 
 def ga_query(service, profile_id, pag_index, start_date, end_date, dims):
+    print('ga_query', service, profile_id, pag_index, start_date, end_date, dims)
     return service.data().ga().get(
         ids='ga:' + profile_id,
         start_date=start_date,
@@ -194,7 +190,7 @@ def ga_query(service, profile_id, pag_index, start_date, end_date, dims):
         max_results=str(pag_index+10000)).execute()
 
 
-def build_csv_list(service, profile_ids, date_ranges, csv_list):
+def build_csv_list(service, profile_id, profile, date_ranges, csv_list):
     table_names = {}
     table_filenames = {}
     writers = {}
@@ -222,7 +218,6 @@ def build_csv_list(service, profile_ids, date_ranges, csv_list):
         writers[dims] = csv.writer(files[dims], lineterminator='\n')
 
     # Try to make a request to the API. Print the results or handle errors.
-    profile_id = profile_ids[profile]
     if not profile_id:
         print('Could not find a valid profile for this user.')
     else:
@@ -281,8 +276,21 @@ def save_results(results, pag_index, start_date, end_date, date_ranges, writer):
 
 def main(argv):
 
-    # Authenticate and construct service.
-    service = get_service()
+    if len(argv) == 0:
+        key_file_location = './client_secrets.json'
+        selected_profile = None
+        omnisci_url = None
+        date_ranges = None
+    else:
+        key_file_location = argv[0]
+        selected_profile = argv[1]
+        omnisci_url = argv[2]
+        date_ranges = [(argv[3], argv[4])]
+
+        with pymapd.connect(omnisci_url) as con:
+            print('existing tables: ', [x for x in con.get_tables() if x.startswith('omnisci')])
+
+    service = get_service(key_file_location)
 
     # Construct dictionary of GA website name and ids.
     profile_ids = traverse_hierarchy(service)
@@ -296,39 +304,42 @@ def main(argv):
         print('%4s %20s %5s %20s' % (i, profile_ids[profile], " ", profile))
         i += 1
 
-    print('Enter the item# of the view you would like to ingest into MapD: ')
-    item = int(input())
-    if item == '' or item <= 0 or item >= len(selection_list):
-        print('Invalid selection - %s' % item)
-        sys.exit(0)
-    print('Item # %s selected' % item)
-
-    print('\nEnter the begin date and end date in the following format: YYYY-MM-DD YYYY-MM-DD')
-    print('Or hit enter to proceed with the default which is last 30 days data')
-    print('Date Range: ')
-    begin_end_date = input()
-    if begin_end_date == '':
-        print('Extract data from today to 30 days ago')
-
-        # date_ranges = [('2017-08-27', '2018-02-22')]
-        # date_ranges = [('30daysAgo', 'today')]
-        date_ranges = [('2daysAgo', 'today')]
-
+    if not selected_profile:
+        print('Enter the item# of the view you would like to ingest into MapD: ')
+        item = int(input())
+        if item == '' or item <= 0 or item >= len(selection_list):
+            print('Invalid selection - %s' % item)
+            sys.exit(0)
+        print('Item # %s selected' % item)
     else:
-        (begin_date, end_date) = [t(s) for t, s in zip((str, str), begin_end_date.split())]
-        print('Extract data from %s to %s' % (begin_date, end_date))
-        date_ranges = [(begin_date, end_date)]
+        item = selection_list.index(profile_ids[selected_profile])
 
-    print("\nEnter the OmniSci server URL if you want to upload data,\n otherwise simply hit enter to use the manual procedure to upload the data")
-    print("  URL example: - omnisci://admin:HyperInteractive@omniscidb.example.com:6274/omnisci?protocol=binary")
-    print('OmniSci URL: ')
-    server_info = input()
-    if server_info == '':
-        print('Use MapD Immerse import user interface to load the output CSV file')
-        skip_mapd_connect = True
-    else:
-        skip_mapd_connect = False
-    print("")
+    if not date_ranges:
+        print('\nEnter the begin date and end date in the following format: YYYY-MM-DD YYYY-MM-DD')
+        print('Or hit enter to proceed with the default which is last 30 days data')
+        print('Date Range: ')
+        begin_end_date = input()
+        if begin_end_date == '':
+            print('Extract data from today to 30 days ago')
+
+            # date_ranges = [('2017-08-27', '2018-02-22')]
+            # date_ranges = [('30daysAgo', 'today')]
+            date_ranges = [('2daysAgo', 'today')]
+
+        else:
+            (begin_date, end_date) = [t(s) for t, s in zip((str, str), begin_end_date.split())]
+            print('Extract data from %s to %s' % (begin_date, end_date))
+            date_ranges = [(begin_date, end_date)]
+
+    if not omnisci_url:
+        print("\nEnter the OmniSci server URL if you want to upload data,\n otherwise simply hit enter to use the manual procedure to upload the data")
+        print("  URL example: - omnisci://admin:HyperInteractive@omniscidb.example.com:6274/omnisci?protocol=binary")
+        print('OmniSci URL: ')
+        omnisci_url = input()
+        if omnisci_url == '':
+            print('Use MapD Immerse import user interface to load the output CSV file')
+            omnisci_url = None
+        print("")
 
     csv_list = []
     for profile in sorted(profile_ids):
@@ -339,9 +350,11 @@ def main(argv):
             table_name = '%s' % (table_name.replace(' ', ''))
             final_csv_file = './data/%s.csv' % (table_name)
             final_csv_gzfile = './data/%s.csv.gz' % (table_name)
-            csv_list = build_csv_list(service, profile_ids, date_ranges, csv_list)
-            merge_tables(final_csv_file)
+            csv_list = build_csv_list(service, profile_ids[profile], profile, date_ranges, csv_list)
+            merge_tables(final_csv_file, csv_list)
     print("Download of analytics data done.")
+
+    # TODO Lines below need to be inside the for loop above?
 
     # Gzip the CSV file
     if os.path.isfile(final_csv_gzfile):
@@ -350,17 +363,17 @@ def main(argv):
         shutil.copyfileobj(f_in, f_out)
 
     # Connect to MapD
-    if skip_mapd_connect == True:
+    if not omnisci_url or omnisci_url == '':
         print("=======================================================================")
-        print('Goto MapD Immerse UI and import the CSV file %s' % (final_csv_gzfile))
+        print('Goto OmniSci Immerse UI and import the CSV file %s' % (final_csv_gzfile))
         print("=======================================================================")
 
     else:
-        with pymapd.connect(server_info) as con:
-        load_table_mapd(con, table_name, final_csv_gzfile)
+        with pymapd.connect(omnisci_url) as con:
+            load_table_mapd(con, table_name, final_csv_gzfile)
 
         print("=======================================================================")
-        print('Goto MapD Immerse UI @ http://%s:9092/' % (mapd_host))
+        print('Goto OmniSci Immerse UI')
         print("=======================================================================")
 
 if __name__ == "__main__":

@@ -19,8 +19,8 @@ from pymapd import connect
 
 def drop_table_mapd(con, table_name):
     command = 'drop table if exists %s' % (table_name)
-    print (command)
-    connection.execute(command)
+    print(command)
+    con.execute(command)
 
 # Load CSV to Table using PyMapD
 def load_table_mapd(con, table_name, csv_file):
